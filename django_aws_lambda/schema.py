@@ -1,6 +1,7 @@
 # cookbook/schema.py
 import graphene
 from graphene_django import DjangoObjectType
+from ingredients.models import Ingredient
 
 from ingredients.models import Category, Ingredient
 
@@ -13,6 +14,7 @@ class IngredientType(DjangoObjectType):
     class Meta:
         model = Ingredient
         fields = ("id", "name", "notes", "category")
+
 
 class Query(graphene.ObjectType):
     all_ingredients = graphene.List(IngredientType)
@@ -28,4 +30,30 @@ class Query(graphene.ObjectType):
         except Category.DoesNotExist:
             return None
 
-schema = graphene.Schema(query=Query)
+
+class CreateIngredient(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        name = graphene.String()
+
+    ok = graphene.Boolean()
+    name = graphene.String()
+    ingredient = graphene.Field(lambda: Ingredient)
+
+    def mutate(root, info, id, name):
+        ingredient = Ingredient(id=id, name=name)
+        ok = True
+
+        return CreateIngredient(ingredient=ingredient, ok=ok)
+
+
+class Ingredient(graphene.ObjectType):
+    id = graphene.ID()
+    name = graphene.String()
+
+
+class MyMutations(graphene.ObjectType):
+    create_ingredient = CreateIngredient.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=MyMutations)
